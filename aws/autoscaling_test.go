@@ -19,6 +19,7 @@ type fakeAutoScalingGroupsService struct {
 	autoscalingiface.AutoScalingAPI
 
 	asgInstances []*autoscaling.InstanceDetails
+	asgGroups    []*autoscaling.Group
 }
 
 func (self *fakeAutoScalingGroupsService) DescribeAutoScalingInstances(
@@ -35,15 +36,13 @@ func (self *fakeAutoScalingGroupsService) DescribeAutoScalingInstances(
 
 func (self *fakeAutoScalingGroupsService) DescribeAutoScalingGroups(
 	input *autoscaling.DescribeAutoScalingGroupsInput) (*autoscaling.DescribeAutoScalingGroupsOutput, error) {
-	if (*input.AutoScalingGroupNames[0]) == "fails" {
-		return nil, errors.New("Auto scaling does not exist!")
+
+	if self.asgGroups == nil {
+		return nil, errors.New("Failed to describe autoscaling instances")
 	}
+
 	return &autoscaling.DescribeAutoScalingGroupsOutput{
-		AutoScalingGroups: []*autoscaling.Group{
-			&autoscaling.Group{
-				AutoScalingGroupName: aws.String("test-asg"),
-			},
-		},
+		AutoScalingGroups: self.asgGroups,
 	}, nil
 }
 
@@ -82,6 +81,11 @@ func TestDescribeAutoScalingSucceeds(t *testing.T) {
 			asgInstances: []*autoscaling.InstanceDetails{
 				&autoscaling.InstanceDetails{
 					AutoScalingGroupName: aws.String("asg"),
+				},
+			},
+			asgGroups: []*autoscaling.Group{
+				&autoscaling.Group{
+					AutoScalingGroupName: aws.String("test-asg"),
 				},
 			},
 		},

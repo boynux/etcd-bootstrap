@@ -2,7 +2,6 @@ package aws
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -18,6 +17,8 @@ import (
  */
 type fakeEC2Service struct {
 	ec2iface.EC2API
+
+	instances []*ec2.Instance
 }
 
 func (self *fakeEC2Service) DescribeInstances(
@@ -25,9 +26,11 @@ func (self *fakeEC2Service) DescribeInstances(
 
 	var instances []*ec2.Instance
 
-	for _, i := range input.InstanceIds {
-		if !strings.HasPrefix(*i, "non") {
-			instances = append(instances, &ec2.Instance{InstanceId: i})
+	for _, i := range self.instances {
+		for _, l := range input.InstanceIds {
+			if *l == *i.InstanceId {
+				instances = append(instances, i)
+			}
 		}
 	}
 
@@ -54,7 +57,13 @@ func TestDescribeInstancesFails(t *testing.T) {
 
 func TestDescribeInstancesSucceeds(t *testing.T) {
 	service := &EC2Helper{
-		service: new(fakeEC2Service),
+		service: &fakeEC2Service{
+			instances: []*ec2.Instance{
+				&ec2.Instance{
+					InstanceId: aws.String("existing-instance"),
+				},
+			},
+		},
 	}
 
 	insts, err := service.GetEC2Instance(aws.String("existing-instance"))
