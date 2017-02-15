@@ -17,24 +17,19 @@ import (
  */
 type fakeAutoScalingGroupsService struct {
 	autoscalingiface.AutoScalingAPI
+
+	asgInstances []*autoscaling.InstanceDetails
 }
 
 func (self *fakeAutoScalingGroupsService) DescribeAutoScalingInstances(
 	input *autoscaling.DescribeAutoScalingInstancesInput) (*autoscaling.DescribeAutoScalingInstancesOutput, error) {
 
-	if (*input.InstanceIds[0]) == "fails" {
+	if self.asgInstances == nil {
 		return nil, errors.New("Failed to describe autoscaling instances")
-	} else if (*input.InstanceIds[0]) == "no-asg" {
-		return &autoscaling.DescribeAutoScalingInstancesOutput{
-			AutoScalingInstances: []*autoscaling.InstanceDetails{},
-		}, nil
 	}
+
 	return &autoscaling.DescribeAutoScalingInstancesOutput{
-		AutoScalingInstances: []*autoscaling.InstanceDetails{
-			&autoscaling.InstanceDetails{
-				AutoScalingGroupName: aws.String("asg"),
-			},
-		},
+		AutoScalingInstances: self.asgInstances,
 	}, nil
 }
 
@@ -62,18 +57,20 @@ func TestDescribeAutoScalingInstancesFails(t *testing.T) {
 	}
 
 	id := "fails"
-	_, err := as.GetAutoScallingGroupOfInstance("eu-west", []*string{&id})
+	_, err := as.GetAutoScallingGroupOfInstance([]*string{&id})
 
 	assert.Error(t, err)
 }
 
 func TestDescribeAutoScalingGroupsFails(t *testing.T) {
 	as := &AutoScalingGroupHelper{
-		service: new(fakeAutoScalingGroupsService),
+		service: &fakeAutoScalingGroupsService{
+			asgInstances: []*autoscaling.InstanceDetails{},
+		},
 	}
 
 	id := "no-asg"
-	_, err := as.GetAutoScallingGroupOfInstance("eu-west", []*string{&id})
+	_, err := as.GetAutoScallingGroupOfInstance([]*string{&id})
 
 	assert.Error(t, err)
 
@@ -81,12 +78,30 @@ func TestDescribeAutoScalingGroupsFails(t *testing.T) {
 
 func TestDescribeAutoScalingSucceeds(t *testing.T) {
 	as := &AutoScalingGroupHelper{
-		service: new(fakeAutoScalingGroupsService),
+		service: &fakeAutoScalingGroupsService{
+			asgInstances: []*autoscaling.InstanceDetails{
+				&autoscaling.InstanceDetails{
+					AutoScalingGroupName: aws.String("asg"),
+				},
+			},
+		},
 	}
 
 	id := "test-id"
-	asg, err := as.GetAutoScallingGroupOfInstance("eu-west", []*string{&id})
+	asg, err := as.GetAutoScallingGroupOfInstance([]*string{&id})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "test-asg", *asg.AutoScalingGroupName, "ASG Group names should match")
+}
+
+func TestGetAutoScalingInstancesReuturns(t *testing.T) {
+	_ = &AutoScalingGroupHelper{
+		service: &fakeAutoScalingGroupsService{
+			asgInstances: []*autoscaling.InstanceDetails{
+				&autoscaling.InstanceDetails{
+					AutoScalingGroupName: aws.String("asg"),
+				},
+			},
+		},
+	}
 }

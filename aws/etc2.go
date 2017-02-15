@@ -4,8 +4,6 @@ import (
 	//	"errors"
 	"log"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 )
@@ -16,16 +14,6 @@ type ec2Service ec2iface.EC2API
 
 type EC2Helper struct {
 	service ec2Service
-}
-
-func NewEC2Service(region string) (*EC2Helper, error) {
-	svc := ec2.New(
-		session.New(&aws.Config{Region: aws.String(region)}),
-	)
-
-	return &EC2Helper{
-		service: svc,
-	}, nil
 }
 
 func (es *EC2Helper) GetEC2Instance(instanceIds ...*string) ([]*EC2Instance, error) {

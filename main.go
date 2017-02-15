@@ -10,17 +10,18 @@ import (
 	"golang.org/x/net/context"
 )
 
-func main() {
-	metadataService := aws.NewEC2MetadataService()
+func getInstances(region string) []*aws.EC2Instance {
+	helper := aws.New(region)
+
+	metadataService := helper.NewEC2MetadataService()
 	m, err := metadataService.GetMetadata()
 
 	if err != nil {
 		log.Fatal("Are you kidding me? This should be executed inside an EC2 instance")
 	}
 
-	fmt.Println(m)
-	asgservice, _ := aws.NewAutoScallingService(m.Region)
-	a, err := asgservice.GetAutoScallingGroupOfInstance(m.Region, []*string{&m.InstanceID})
+	asgservice, _ := helper.NewAutoScallingService()
+	a, err := asgservice.GetAutoScallingGroupOfInstance([]*string{&m.InstanceID})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,8 +37,16 @@ func main() {
 		fmt.Println("It seems that we are the only memeber of the cluster. So try to create a new cluster!")
 	}
 
-	ec2service, _ := aws.NewEC2Service(m.Region)
+	ec2service, _ := helper.NewEC2Service()
 	insts, err := ec2service.GetEC2Instance(ids...)
+
+	return insts
+}
+
+func main() {
+	region := "eu-west-1"
+	insts := getInstances(region)
+
 	for _, i := range insts {
 		fmt.Printf("Checking ETCD instance at %s", *i.PrivateIpAddress)
 

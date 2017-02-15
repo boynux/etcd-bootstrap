@@ -4,8 +4,6 @@ import (
 	"errors"
 	"log"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 )
@@ -17,17 +15,7 @@ type AutoScalingGroupHelper struct {
 	service autoScalingGroupsService
 }
 
-func NewAutoScallingService(region string) (*AutoScalingGroupHelper, error) {
-	svc := autoscaling.New(
-		session.New(&aws.Config{Region: aws.String(region)}),
-	)
-
-	return &AutoScalingGroupHelper{
-		service: svc,
-	}, nil
-}
-
-func (as *AutoScalingGroupHelper) GetAutoScallingGroupOfInstance(region string, instanceIDs []*string) (*AutoScalingGroup, error) {
+func (as *AutoScalingGroupHelper) GetAutoScallingGroupOfInstance(instanceIDs []*string) (*AutoScalingGroup, error) {
 	out, err := as.service.DescribeAutoScalingInstances(&autoscaling.DescribeAutoScalingInstancesInput{
 		InstanceIds: instanceIDs,
 	})
@@ -54,4 +42,8 @@ func (as *AutoScalingGroupHelper) GetAutoScallingGroupOfInstance(region string, 
 
 	res := AutoScalingGroup(*asgs.AutoScalingGroups[0])
 	return &res, nil
+}
+
+func (as *AutoScalingGroupHelper) GetAutoScalingInstances(name string) ([]*EC2Instance, error) {
+	return nil, errors.New("No instnace found!")
 }
