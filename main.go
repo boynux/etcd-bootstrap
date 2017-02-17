@@ -1,8 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"crypto/md5"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"strings"
+	"text/template"
 
 	"etcd-bootstrap/aws"
 	"etcd-bootstrap/etcd"
@@ -11,37 +17,107 @@ import (
 )
 
 func main() {
-	region := "eu-west-1"
+	quite := flag.Bool("quiet", false, "Disable log output")
+	region := flag.String("region", "eu-west-1", "Region to initialize the script.")
+	clientPort := flag.Int("client-port", 2379, "ETCD Cient port")
 
-	insts, err := aws.New(region).GetAutoSelfScalingInstances()
+	flag.Parse()
+
+	if *quite {
+		log.SetFlags(0)
+		log.SetOutput(ioutil.Discard)
+	}
+
+	var members []*etcd.Member
+	var instances []*aws.EC2Instance
+	var err error
+
+	instances, err = aws.New(*region).GetAutoSelfScalingInstances()
 	if err != nil {
 		panic("Could not get EC2 instances")
 	}
 
-	for _, i := range insts {
-		fmt.Printf("Checking ETCD instance at %s", *i.PrivateIpAddress)
+	for _, i := range instances {
+		log.Printf("Checking ETCD instance at %s", *i.PrivateIpAddress)
 
-		e, err := etcd.New(fmt.Sprintf("http://%s:%d", *i.PrivateIpAddress, 2379))
+		e, err := etcd.New(fmt.Sprintf("http://%s:%d", *i.PrivateIpAddress, *clientPort))
 
 		if err != nil {
-			log.Printf("EtcD instance is not responding at: %s", *i.PrivateIpAddress)
+			log.Printf("EtcD instance is not responding at: %s:%d", *i.PrivateIpAddress, *clientPort)
 		} else {
-			mAPI := e.NewMembersAPI()
-
-			log.Print("Trying to find leader...")
-			resp, err := mAPI.Leader(context.Background())
+			log.Print("Trying to find members this indicates if the cluster already exits...")
+			members, err = e.ListMembers(context.Background())
 			if err != nil {
+				log.Printf("Could not fetch members list from ETCD cluster: %s:%s", *i.InstanceId, *i.PrivateIpAddress)
 				log.Println(err)
 			} else {
-				// print common key info
-				log.Printf("Get is done. Metadata is %q\n", resp)
-				/*
-					for _, m := range resp {
-						// print value
-						log.Printf("Members: %s (%s)", m.ID, m.Name)
-					}
-				*/
+				log.Println("We managed to fetch members info, proceeding with exisitng cluster...")
+				// Seems we managed to get some member information
+				// We can get out of the loop her and try to check for the state of the cluster
+				break
 			}
 		}
 	}
+
+	// Try to cunstruct etcd2 parameters...
+	metadata, _ := aws.New(*region).NewEC2MetadataService().GetMetadata()
+	asginfo, _ := aws.New(metadata.Region).NewAutoScallingService().GetAutoScallingGroupOfInstance([]*string{&metadata.InstanceID})
+	clusterToken := md5.Sum([]byte(*asginfo.AutoScalingGroupName))
+	state := "new"
+
+	// OK, if there is any members in the list we can start to the process to join the cluster
+	// otherwise we are the only member and thus we should have our own cluster
+	if len(members) > 0 {
+		state = "existing"
+	}
+
+	// Instances list are fetch before, we assume all instance suppose to run etcd nodes
+	peers := make([]string, len(instances))
+	for x, i := range instances {
+		peers[x] = fmt.Sprintf("%s=http://%s:%d", *i.InstanceId, *i.PrivateIpAddress, 2380)
+	}
+
+	params := struct {
+		Name         string
+		PrivateIP    string
+		ClientPort   int
+		Peers        []string
+		Token        [16]byte
+		ClusterState string
+		Join         func([]string, string) string
+	}{
+		Name:         metadata.InstanceID,
+		PrivateIP:    metadata.PrivateIP,
+		ClientPort:   *clientPort,
+		Token:        clusterToken,
+		Peers:        peers,
+		ClusterState: state,
+		Join:         strings.Join,
+	}
+
+	var templateParams []string
+	for _, i := range []string{
+		`--name {{.Name}} --initial-advertise-peer-urls http://{{.PrivateIP}}:2380`,
+		`--listen-peer-urls http://{{.PrivateIP}}:2380`,
+		`--listen-client-urls http://{{.PrivateIP}}:2379,http://127.0.0.1:2379`,
+		`--advertise-client-urls http://{{ .PrivateIP }}:{{.ClientPort}}`,
+		`--initial-cluster-token {{printf "%x" .Token}}`,
+		`--initial-cluster {{ call .Join .Peers ","}}`,
+		`--initial-cluster-state {{.ClusterState}}`,
+	} {
+		tmpl, err := template.New("etcd-args").Parse(i)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var b bytes.Buffer
+		err = tmpl.Execute(&b, params)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		templateParams = append(templateParams, b.String())
+	}
+
+	fmt.Println(strings.Join(templateParams, " "))
 }
