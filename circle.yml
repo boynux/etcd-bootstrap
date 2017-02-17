@@ -34,7 +34,7 @@ deployment:
         branch: master
         commands:
             - gox -ldflags "-X main.Version=$CIRCLE_SHA1 -X main.BuildNumber=$CIRCLE_BUILD_NUM" -osarch="linux/amd64" -output "dist/$BUILD_NAME"
-            - ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace --prelease --debug pre-release dist/
+            - ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace pre-release dist/
     release:
         tag: /v[0-9]+(\.[0-9]+)*/
         commands:
