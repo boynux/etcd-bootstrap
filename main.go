@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	Version   string
-	BuildDate string
+	Version     string
+	BuildNumber string
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	log.Printf("Build number: %s, Build date: %s", Version, BuildDate)
+	log.Printf("Build version: %s, Build number: %s", Version, BuildNumber)
 
 	var members []*etcd.Member
 	var instances []*aws.EC2Instance
