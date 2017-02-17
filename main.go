@@ -16,6 +16,11 @@ import (
 	"golang.org/x/net/context"
 )
 
+var (
+	Version   string
+	BuildDate string
+)
+
 func main() {
 	quite := flag.Bool("quiet", false, "Disable log output")
 	region := flag.String("region", "eu-west-1", "Region to initialize the script.")
@@ -27,6 +32,8 @@ func main() {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 	}
+
+	log.Printf("Build number: %s, Build date: %s", Version, BuildDate)
 
 	var members []*etcd.Member
 	var instances []*aws.EC2Instance
