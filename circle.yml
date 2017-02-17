@@ -2,6 +2,7 @@ machine:
     environment:
         GODIST: go1.7.linux-amd64.tar.gz
         GOPATH: $HOME/.go_workspace
+        BUILD_NAME: etcd-bootstrap
     post:
         - mkdir -p download
         - test -e download/$GODIST || curl -o download/$GODIST https://storage.googleapis.com/golang/$GODIST
@@ -32,10 +33,10 @@ deployment:
     prod:
         branch: master
         commands:
-            - gox -ldflags "-X main.Version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -osarch="linux/amd64" -output "dist/ncd_{{.OS}}_{{.Arch}}"
+            - gox -ldflags "-X main.Version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -osarch="linux/amd64" -output "dist/$BUILD_NAME"
 
     release:
         tag: /v[0-9]+(\.[0-9]+)*/
         commands:
-            - gox -ldflags "-X main.Version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -osarch="linux/amd64" -output "dist/ncd_{{.OS}}_{{.Arch}}"
+            - gox -ldflags "-X main.Version=$BUILD_VERSION -X main.BuildDate=$BUILD_DATE" -osarch="linux/amd64" -output "dist/$BUILD_NAME"
             - ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/
