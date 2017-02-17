@@ -1,20 +1,30 @@
 machine:
     environment:
-        GODISTS: go1.6.linux-amd64.tar.gz"
+        GODIST: go1.6.linux-amd64.tar.gz
+        GOPATH: $HOME/.go_workspace
     post:
         - mkdir -p download
         - test -e download/$GODIST || curl -o download/$GODIST https://storage.googleapis.com/golang/$GODIST
         - sudo rm -rf /usr/local/go
         - sudo tar -C /usr/local -xzf download/$GODIST
+
+checkout:
+    post:
+        - mkdir -p $GOPATH/src
+        - ln -fs $HOME/$CIRCLE_PROJECT_REPONAME $GOPATH/src/$CIRCLE_PROJECT_REPONAME
+
 dependencies:
     cache_directories:
         - ~/download
     override:
-        - mkdir -p $GOPATH/src
-        - ln -fs $HOME/$CIRCLE_PROJECT_REPONAME $GOPATH/src/$CIRCLE_PROJECT_REPONAME
         - cd $GOPATH/src/$CIRCLE_PROJECT_REPONAME && go get -t -d -v ./...
-        - cd $GOPATH/src/$CIRCLE_PROJECT_REPONAME && go build -v
 
 test:
     override:
         - cd $GOPATH/src/$CIRCLE_PROJECT_REPONAME && go test -v ./...
+
+deployment:
+    prod:
+        branch: master
+        commands:
+            - cd $GOPATH/src/$CIRCLE_PROJECT_REPONAME && go build -v
