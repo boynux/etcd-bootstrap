@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"crypto/md5"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"strings"
-	"text/template"
 
 	"etcd-bootstrap/aws"
 	"etcd-bootstrap/etcd"
@@ -84,15 +82,7 @@ func main() {
 		peers[x] = fmt.Sprintf("%s=http://%s:%d", *i.InstanceId, *i.PrivateIpAddress, 2380)
 	}
 
-	params := struct {
-		Name         string
-		PrivateIP    string
-		ClientPort   int
-		Peers        []string
-		Token        [16]byte
-		ClusterState string
-		Join         func([]string, string) string
-	}{
+	params := etcd.Parameters{
 		Name:         metadata.InstanceID,
 		PrivateIP:    metadata.PrivateIP,
 		ClientPort:   *clientPort,
@@ -102,29 +92,5 @@ func main() {
 		Join:         strings.Join,
 	}
 
-	var templateParams []string
-	for _, i := range []string{
-		`--name {{.Name}} --initial-advertise-peer-urls http://{{.PrivateIP}}:2380`,
-		`--listen-peer-urls http://{{.PrivateIP}}:2380`,
-		`--listen-client-urls http://{{.PrivateIP}}:2379,http://127.0.0.1:2379`,
-		`--advertise-client-urls http://{{ .PrivateIP }}:{{.ClientPort}}`,
-		`--initial-cluster-token {{printf "%x" .Token}}`,
-		`--initial-cluster {{ call .Join .Peers ","}}`,
-		`--initial-cluster-state {{.ClusterState}}`,
-	} {
-		tmpl, err := template.New("etcd-args").Parse(i)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		var b bytes.Buffer
-		err = tmpl.Execute(&b, params)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		templateParams = append(templateParams, b.String())
-	}
-
-	fmt.Println(strings.Join(templateParams, " "))
+	fmt.Println(strings.Join(etcd.GenerateParameteres(params), " "))
 }
