@@ -2,7 +2,7 @@ dependencies:
     override:
         - mkdir -p $GOPATH/src
         - ln -fs $HOME/$CIRCLE_PROJECT_REPONAME $GOPATH/src/$CIRCLE_PROJECT_REPONAME
-        - cd $GOPATH/src/$CIRCLE_PROJECT_REPONAME && go get -t -d -v ./...
+        - cd $GOPATH/src/$CIRCLE_PROJECT_REPONAME && go get -t -d -v ./... || true
         - cd $GOPATH/src/$CIRCLE_PROJECT_REPONAME && go build -v
 
 test:
