@@ -33,8 +33,8 @@ func main() {
 
 		if err == nil {
 			members, err = e.ListMembers(context.Background())
-			firstActiveEtcd = e
 			if err == nil {
+				firstActiveEtcd = e
 				log.Println("We managed to fetch members info, proceeding with exisitng cluster...")
 				// Seems we managed to get some member information
 				// We can get out of the loop her and try to check for the state of the cluster
@@ -76,9 +76,11 @@ func main() {
 	}
 
 	log.Println("Adding this machine to the cluster")
-	_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
-	if err != nil {
-		log.Printf("Could not join member to the cluster... %s\n", err)
+	if firstActiveEtcd != nil && state == "existing" {
+		_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
+		if err != nil {
+			log.Printf("Could not join member to the cluster... %s\n", err)
+		}
 	}
 
 	fmt.Println(strings.Join(etcd.GenerateParameteres(params), " "))
