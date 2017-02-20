@@ -112,3 +112,14 @@ func (e *Etcd) ListMembers(c context.Context) ([]*Member, error) {
 	}
 	return nil, err
 }
+
+func (e *Etcd) AddMember(c context.Context, peerUrl string) (*Member, error) {
+	m, err := e.NewMembersAPI().Add(c, peerUrl)
+	if err == nil {
+		member := Member(*m)
+
+		return &member, nil
+	}
+
+	return nil, err
+}

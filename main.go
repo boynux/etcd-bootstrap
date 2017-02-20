@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/md5"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"strings"
 
@@ -14,17 +13,13 @@ import (
 )
 
 func main() {
-
 	conf := NewConfiguration()
-
-	if *conf.Quiet {
-		log.SetFlags(0)
-		log.SetOutput(ioutil.Discard)
-	}
+	quietLogging(!*conf.Quiet)
 
 	log.Println(getVersion())
 
 	var members []*etcd.Member
+	var firstActiveEtcd *etcd.Etcd
 
 	instances, err := aws.New(*conf.Region).GetAutoSelfScalingInstances()
 	if err != nil {
@@ -38,6 +33,7 @@ func main() {
 
 		if err == nil {
 			members, err = e.ListMembers(context.Background())
+			firstActiveEtcd = e
 			if err == nil {
 				log.Println("We managed to fetch members info, proceeding with exisitng cluster...")
 				// Seems we managed to get some member information
@@ -77,6 +73,12 @@ func main() {
 		Peers:        peers,
 		ClusterState: state,
 		Join:         strings.Join,
+	}
+
+	log.Println("Adding this machine to the cluster")
+	_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
+	if err != nil {
+		log.Printf("Could not join member to the cluster... %s\n", err)
 	}
 
 	fmt.Println(strings.Join(etcd.GenerateParameteres(params), " "))
