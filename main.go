@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/md5"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,30 +13,20 @@ import (
 	"golang.org/x/net/context"
 )
 
-var (
-	Version     string
-	BuildNumber string
-)
-
 func main() {
-	quite := flag.Bool("quiet", false, "Disable log output")
-	region := flag.String("region", "eu-west-1", "Region to initialize the script.")
-	clientPort := flag.Int("client-port", 2379, "ETCD Cient port")
 
-	flag.Parse()
+	conf := NewConfiguration()
 
-	if *quite {
+	if *conf.Quiet {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 	}
 
-	log.Printf("Build version: %s, Build number: %s", Version, BuildNumber)
+	log.Println(getVersion())
 
 	var members []*etcd.Member
-	var instances []*aws.EC2Instance
-	var err error
 
-	instances, err = aws.New(*region).GetAutoSelfScalingInstances()
+	instances, err := aws.New(*conf.Region).GetAutoSelfScalingInstances()
 	if err != nil {
 		panic("Could not get EC2 instances")
 	}
@@ -45,17 +34,11 @@ func main() {
 	for _, i := range instances {
 		log.Printf("Checking ETCD instance at %s", *i.PrivateIpAddress)
 
-		e, err := etcd.New(fmt.Sprintf("http://%s:%d", *i.PrivateIpAddress, *clientPort))
+		e, err := etcd.New(fmt.Sprintf("http://%s:%d", *i.PrivateIpAddress, *conf.ClientPort))
 
-		if err != nil {
-			log.Printf("EtcD instance is not responding at: %s:%d", *i.PrivateIpAddress, *clientPort)
-		} else {
-			log.Print("Trying to find members this indicates if the cluster already exits...")
+		if err == nil {
 			members, err = e.ListMembers(context.Background())
-			if err != nil {
-				log.Printf("Could not fetch members list from ETCD cluster: %s:%s", *i.InstanceId, *i.PrivateIpAddress)
-				log.Println(err)
-			} else {
+			if err == nil {
 				log.Println("We managed to fetch members info, proceeding with exisitng cluster...")
 				// Seems we managed to get some member information
 				// We can get out of the loop her and try to check for the state of the cluster
@@ -64,8 +47,12 @@ func main() {
 		}
 	}
 
+	if err != nil {
+		log.Printf("Error while getting ETCD members info ... %s\n", err)
+	}
+
 	// Try to cunstruct etcd2 parameters...
-	metadata, _ := aws.New(*region).NewEC2MetadataService().GetMetadata()
+	metadata, _ := aws.New(*conf.Region).NewEC2MetadataService().GetMetadata()
 	asginfo, _ := aws.New(metadata.Region).NewAutoScallingService().GetAutoScallingGroupOfInstance([]*string{&metadata.InstanceID})
 	clusterToken := md5.Sum([]byte(*asginfo.AutoScalingGroupName))
 	state := "new"
@@ -85,7 +72,7 @@ func main() {
 	params := etcd.Parameters{
 		Name:         metadata.InstanceID,
 		PrivateIP:    metadata.PrivateIP,
-		ClientPort:   *clientPort,
+		ClientPort:   *conf.ClientPort,
 		Token:        clusterToken,
 		Peers:        peers,
 		ClusterState: state,
