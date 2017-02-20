@@ -30,7 +30,7 @@ dependencies:
 
 test:
     override:
-        - cd $GOPATH/src/$CIRCLE_PROJECT_REPONAME && go test -v ./...
+        - cd $GOPATH/src/$CIRCLE_PROJECT_REPONAME && go test -v -cover $(glide nv)
 
 deployment:
     pre-release:
