@@ -61,8 +61,11 @@ func main() {
 
 	// Instances list are fetch before, we assume all instance suppose to run etcd nodes
 	peers := make([]string, len(instances))
+	activeInsts := make([]string, len(instances))
+
 	for x, i := range instances {
 		peers[x] = fmt.Sprintf("%s=http://%s:%d", *i.InstanceId, *i.PrivateIpAddress, 2380)
+		activeInsts[x] = *i.InstanceId
 	}
 
 	params := etcd.Parameters{
@@ -77,6 +80,7 @@ func main() {
 
 	log.Println("Adding this machine to the cluster")
 	if firstActiveEtcd != nil && state == "existing" {
+		firstActiveEtcd.GarbageCollector(context.Background(), activeInsts)
 		_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
 		if err != nil {
 			log.Printf("Could not join member to the cluster... %s\n", err)

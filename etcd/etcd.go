@@ -54,6 +54,27 @@ type Etcd struct {
 	client Client
 }
 
+func (e *Etcd) GarbageCollector(c context.Context, members []string) {
+	m, err := e.NewMembersAPI().List(c)
+
+	if err == nil {
+		for x, i := range m {
+			found := false
+			for _, c := range members {
+				if c == i.Name {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				log.Printf("removing member number %d: %s", x, m[x])
+				e.NewMembersAPI().Remove(c, m[x].ID)
+			}
+		}
+	}
+}
+
 func GenerateParameteres(output string, params Parameters) []string {
 	args := make([]string, len(argsTemplate))
 
