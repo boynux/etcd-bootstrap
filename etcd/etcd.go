@@ -61,7 +61,8 @@ func (e *Etcd) GarbageCollector(c context.Context, members []string) {
 		for x, i := range m {
 			found := false
 			for _, c := range members {
-				if c == i.Name {
+				log.Printf("Checking for member %s", c)
+				if c == "" || c == i.Name {
 					found = true
 					break
 				}
