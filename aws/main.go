@@ -66,7 +66,7 @@ func (h *AWSServiceHelper) GetAutoSelfScalingInstances() ([]*EC2Instance, error)
 		ids = append(ids, i.InstanceId)
 	}
 
-	insts, err := h.NewEC2Service().GetEC2Instance(ids...)
+	insts, err := h.NewEC2Service().GetRunningEC2Instance(ids...)
 
 	return insts, err
 }

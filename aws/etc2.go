@@ -36,3 +36,17 @@ func (es *EC2Helper) GetEC2Instance(instanceIds ...*string) ([]*EC2Instance, err
 
 	return res, nil
 }
+
+func (es *EC2Helper) GetRunningEC2Instance(instanceIds ...*string) ([]*EC2Instance, error) {
+
+	i, err := es.GetEC2Instance(instanceIds...)
+
+	var res []*EC2Instance
+	for _, i := range i {
+		if *i.State.Name == "running" {
+			res = append(res, i)
+		}
+	}
+
+	return res, err
+}
