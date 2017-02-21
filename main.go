@@ -27,18 +27,25 @@ func main() {
 	}
 
 	for _, i := range instances {
-		log.Printf("Checking ETCD instance at %s", *i.PrivateIpAddress)
+		// Make sure instance has Private address
+		// In case instance still initializing it might be that there is
+		// not Private address associated.
+		// We can skip this since eventually instance will be available and
+		// is able to get new address
+		if i.PrivateIpAddress != nil {
+			log.Printf("Checking ETCD instance at %s", *i.PrivateIpAddress)
 
-		e, err := etcd.New(fmt.Sprintf("http://%s:%d", *i.PrivateIpAddress, *conf.ClientPort))
+			e, err := etcd.New(fmt.Sprintf("http://%s:%d", *i.PrivateIpAddress, *conf.ClientPort))
 
-		if err == nil {
-			members, err = e.ListMembers(context.Background())
 			if err == nil {
-				firstActiveEtcd = e
-				log.Println("We managed to fetch members info, proceeding with exisitng cluster...")
-				// Seems we managed to get some member information
-				// We can get out of the loop her and try to check for the state of the cluster
-				break
+				members, err = e.ListMembers(context.Background())
+				if err == nil {
+					firstActiveEtcd = e
+					log.Println("We managed to fetch members info, proceeding with exisitng cluster...")
+					// Seems we managed to get some member information
+					// We can get out of the loop her and try to check for the state of the cluster
+					break
+				}
 			}
 		}
 	}
