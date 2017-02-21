@@ -8,6 +8,7 @@ type Configuration struct {
 	ClientPort *int
 	AddMember  *bool
 	Schema     *string
+	Output     *string
 }
 
 func NewConfiguration() *Configuration {
@@ -17,6 +18,7 @@ func NewConfiguration() *Configuration {
 		ClientPort: flag.Int("client-port", 2379, "ETCD Cient port"),
 		AddMember:  flag.Bool("add-member", true, "Add this etcd member implicitly to the cluster"),
 		Schema:     flag.String("schema", "http", "Schema to communicate to the cluster, currently only 'http' works"),
+		Output:     flag.String("output", "args", "Output format. Available options: args, env"),
 	}
 
 	flag.Parse()
@@ -24,6 +26,12 @@ func NewConfiguration() *Configuration {
 
 	return args
 
+}
+
+func validateOutput(o *string) {
+	if *o != "args" && *o != "env" {
+		panic("Supported output types are 'args' and 'env'")
+	}
 }
 
 func validaSchema(s *string) {
