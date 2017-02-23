@@ -3,17 +3,30 @@ package etcd
 import (
 	"bytes"
 	"log"
+	"strings"
 	"text/template"
 )
 
 type Parameters struct {
-	Name         string
-	PrivateIP    string
-	ClientPort   int
-	Peers        []string
-	Token        [16]byte
-	ClusterState string
-	Join         func([]string, string) string
+	Name       string
+	PrivateIP  string
+	ClientPort int
+	Peers      []string
+	Token      [16]byte
+	Join       func([]string, string) string
+}
+
+func NewParameters() *Parameters {
+	return &Parameters{
+		Join: strings.Join,
+	}
+}
+
+func (p *Parameters) ClusterState() string {
+	if len(p.Peers) > 0 {
+		return "existing"
+	}
+	return "new"
 }
 
 var (

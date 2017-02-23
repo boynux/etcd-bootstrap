@@ -11,16 +11,14 @@ func TestGenerateParameteresArgs(t *testing.T) {
 	var token [16]byte
 
 	copy(token[:], "token1234567890")
-	args := GenerateParameteres("args", &Parameters{
-		Name:         "test-1",
-		PrivateIP:    "10.0.0.1",
-		ClientPort:   4444,
-		Peers:        []string{"http://10.0.0.2:4445", "http://10.0.0.3:4445"},
-		Token:        token,
-		ClusterState: "existing",
-		Join:         strings.Join,
-	},
-	)
+	params := NewParameters()
+	params.Name = "test-1"
+	params.PrivateIP = "10.0.0.1"
+	params.ClientPort = 4444
+	params.Peers = []string{"http://10.0.0.2:4445", "http://10.0.0.3:4445"}
+	params.Token = token
+	params.Join = strings.Join
+	args := GenerateParameteres("args", params)
 
 	assert.NotNil(t, args)
 
@@ -42,16 +40,14 @@ func TestGenerateParameteresEnv(t *testing.T) {
 	var token [16]byte
 
 	copy(token[:], "token1234567890")
-	args := GenerateParameteres("env", &Parameters{
-		Name:         "test-1",
-		PrivateIP:    "10.0.0.1",
-		ClientPort:   4444,
-		Peers:        []string{"http://10.0.0.2:4445", "http://10.0.0.3:4445"},
-		Token:        token,
-		ClusterState: "existing",
-		Join:         strings.Join,
-	},
-	)
+	params := NewParameters()
+	params.Name = "test-1"
+	params.PrivateIP = "10.0.0.1"
+	params.ClientPort = 4444
+	params.Peers = []string{"http://10.0.0.2:4445", "http://10.0.0.3:4445"}
+	params.Token = token
+	params.Join = strings.Join
+	args := GenerateParameteres("env", params)
 
 	assert.NotNil(t, args)
 
@@ -69,6 +65,16 @@ func TestGenerateParameteresEnv(t *testing.T) {
 	}
 }
 
-/*
+func TestClusterStateExisting(t *testing.T) {
+	params := NewParameters()
+	params.Peers = []string{"http://10.0.0.2:4445", "http://10.0.0.3:4445"}
 
- */
+	assert.Equal(t, "existing", params.ClusterState())
+}
+
+func TestClusterStateNew(t *testing.T) {
+	params := NewParameters()
+	params.Peers = []string{}
+
+	assert.Equal(t, "new", params.ClusterState())
+}

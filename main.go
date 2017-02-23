@@ -18,7 +18,6 @@ func main() {
 
 	log.Println(getVersion())
 
-	var members []*etcd.Member
 	var firstActiveEtcd *etcd.Etcd
 
 	instances, err := aws.New(*conf.Region).GetAutoSelfScalingInstances()
@@ -37,7 +36,7 @@ func main() {
 		e, err := etcd.New(fmt.Sprintf("http://%s:%d", *i.PrivateIpAddress, *conf.ClientPort))
 
 		if err == nil {
-			members, err = e.ListMembers(context.Background())
+			_, err := e.ListMembers(context.Background())
 			if err == nil {
 				firstActiveEtcd = e
 				log.Println("We managed to fetch members info, proceeding with exisitng cluster...")
@@ -56,13 +55,6 @@ func main() {
 	metadata, _ := aws.New(*conf.Region).NewEC2MetadataService().GetMetadata()
 	asginfo, _ := aws.New(metadata.Region).NewAutoScallingService().GetAutoScallingGroupOfInstance([]*string{&metadata.InstanceID})
 	clusterToken := md5.Sum([]byte(*asginfo.AutoScalingGroupName))
-	state := "new"
-
-	// OK, if there is any members in the list we can start to the process to join the cluster
-	// otherwise we are the only member and thus we should have our own cluster
-	if len(members) > 0 {
-		state = "existing"
-	}
 
 	// Instances list are fetch before, we assume all instance suppose to run etcd nodes
 	peers := make([]string, len(instances))
@@ -73,18 +65,16 @@ func main() {
 		activeInsts[x] = *i.InstanceId
 	}
 
-	params := etcd.Parameters{
-		Name:         metadata.InstanceID,
-		PrivateIP:    metadata.PrivateIP,
-		ClientPort:   *conf.ClientPort,
-		Token:        clusterToken,
-		Peers:        peers,
-		ClusterState: state,
-		Join:         strings.Join,
-	}
+	params := etcd.NewParameters()
+	params.Name = metadata.InstanceID
+	params.PrivateIP = metadata.PrivateIP
+	params.ClientPort = *conf.ClientPort
+	params.Token = clusterToken
+	params.Peers = peers
+	params.Join = strings.Join
 
 	log.Println("Adding this machine to the cluster")
-	if firstActiveEtcd != nil && state == "existing" {
+	if firstActiveEtcd != nil && params.ClusterState() == "existing" {
 		firstActiveEtcd.GarbageCollector(context.Background(), activeInsts)
 		_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
 		if err != nil {
@@ -93,8 +83,8 @@ func main() {
 	}
 
 	if *conf.Output == "env" {
-		fmt.Println(strings.Join(etcd.GenerateParameteres(*conf.Output, &params), "\n"))
+		fmt.Println(strings.Join(etcd.GenerateParameteres(*conf.Output, params), "\n"))
 	} else {
-		fmt.Println(strings.Join(etcd.GenerateParameteres(*conf.Output, &params), " "))
+		fmt.Println(strings.Join(etcd.GenerateParameteres(*conf.Output, params), " "))
 	}
 }
