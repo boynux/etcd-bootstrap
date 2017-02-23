@@ -19,7 +19,7 @@ type Parameters struct {
 var (
 	argsTemplate = []string{
 		`--name {{.Name}}`,
-		`--listen-client-urls http://{{.PrivateIP}}:2379,http://127.0.0.1:2379`,
+		`--listen-client-urls http://{{.PrivateIP}}:{{.ClientPort}},http://127.0.0.1:{{.ClientPort}}`,
 		`--initial-advertise-peer-urls http://{{.PrivateIP}}:2380`,
 		`--listen-peer-urls http://{{.PrivateIP}}:2380`,
 		`--advertise-client-urls http://{{.PrivateIP}}:{{.ClientPort}}`,
@@ -40,7 +40,7 @@ var (
 	}
 )
 
-func GenerateParameteres(output string, params Parameters) []string {
+func GenerateParameteres(output string, params *Parameters) []string {
 	args := make([]string, len(argsTemplate))
 
 	temp := argsTemplate

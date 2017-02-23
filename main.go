@@ -93,8 +93,8 @@ func main() {
 	}
 
 	if *conf.Output == "env" {
-		fmt.Println(strings.Join(etcd.GenerateParameteres(*conf.Output, params), "\n"))
+		fmt.Println(strings.Join(etcd.GenerateParameteres(*conf.Output, &params), "\n"))
 	} else {
-		fmt.Println(strings.Join(etcd.GenerateParameteres(*conf.Output, params), " "))
+		fmt.Println(strings.Join(etcd.GenerateParameteres(*conf.Output, &params), " "))
 	}
 }
