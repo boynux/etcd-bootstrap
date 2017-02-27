@@ -32,7 +32,7 @@ func main() {
 	activeInsts := make([]string, len(instances))
 
 	for x, i := range instances {
-		activeInsts[x] = *i.InstanceId
+		activeInsts[x] = *i.PrivateIpAddress
 	}
 
 	params := generateParameters(conf, instances)
