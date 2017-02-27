@@ -14,22 +14,22 @@ import (
  * we try to provide various cases based on parameter values
  */
 type fakeEC2MetadataService struct {
-	ec2MetadataService
+	ec2MetadataIface
 
 	isEC2Instance    bool
 	identityDocument *ec2metadata.EC2InstanceIdentityDocument
 }
 
-func (self fakeEC2MetadataService) Available() bool {
-	return self.isEC2Instance
+func (e fakeEC2MetadataService) Available() bool {
+	return e.isEC2Instance
 }
 
-func (self fakeEC2MetadataService) GetInstanceIdentityDocument() (ec2metadata.EC2InstanceIdentityDocument, error) {
-	if self.identityDocument == nil {
+func (e fakeEC2MetadataService) GetInstanceIdentityDocument() (ec2metadata.EC2InstanceIdentityDocument, error) {
+	if e.identityDocument == nil {
 		return ec2metadata.EC2InstanceIdentityDocument{}, errors.New("Could not fetch identity document")
 	}
 
-	return *self.identityDocument, nil
+	return *e.identityDocument, nil
 }
 
 /*

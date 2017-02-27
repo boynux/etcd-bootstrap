@@ -56,7 +56,7 @@ func main() {
 	asginfo, _ := aws.New(metadata.Region).NewAutoScallingService().GetAutoScallingGroupOfInstance([]*string{&metadata.InstanceID})
 	clusterToken := md5.Sum([]byte(*asginfo.AutoScalingGroupName))
 
-	// Instances list are fetch before, we assume all instance suppose to run etcd nodes
+	// Instances list are fetch before, we assume all instances suppose to run etcd nodes
 	peers := make([]string, len(instances))
 	activeInsts := make([]string, len(instances))
 
@@ -71,12 +71,25 @@ func main() {
 	params.ClientPort = *conf.ClientPort
 	params.Token = clusterToken
 	params.Peers = peers
+	params.ExistingCluster = firstActiveEtcd != nil
 	params.Join = strings.Join
 
+	if *conf.UsePublicIP {
+		ip, err := aws.New(*conf.Region).NewEC2MetadataService().GetPublicIP()
+		if err != nil {
+			log.Printf("Could not get public IP address, %s\n", err)
+		} else {
+			params.PublicIP = ip
+		}
+	}
+
 	log.Println("Adding this machine to the cluster")
-	if firstActiveEtcd != nil && params.ClusterState() == "existing" {
+	if params.ExistingCluster {
 		firstActiveEtcd.GarbageCollector(context.Background(), activeInsts)
-		_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
+		if *conf.AddMember {
+			_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
+		}
+
 		if err != nil {
 			log.Printf("Could not join member to the cluster... %s\n", err)
 		}

@@ -18,6 +18,7 @@ func TestGenerateParameteresArgs(t *testing.T) {
 	params.Peers = []string{"http://10.0.0.2:4445", "http://10.0.0.3:4445"}
 	params.Token = token
 	params.Join = strings.Join
+	params.ExistingCluster = true
 	args := GenerateParameteres("args", params)
 
 	assert.NotNil(t, args)
@@ -47,6 +48,7 @@ func TestGenerateParameteresEnv(t *testing.T) {
 	params.Peers = []string{"http://10.0.0.2:4445", "http://10.0.0.3:4445"}
 	params.Token = token
 	params.Join = strings.Join
+	params.ExistingCluster = true
 	args := GenerateParameteres("env", params)
 
 	assert.NotNil(t, args)
@@ -65,16 +67,16 @@ func TestGenerateParameteresEnv(t *testing.T) {
 	}
 }
 
-func TestClusterStateExisting(t *testing.T) {
-	params := NewParameters()
-	params.Peers = []string{"http://10.0.0.2:4445", "http://10.0.0.3:4445"}
-
-	assert.Equal(t, "existing", params.ClusterState())
-}
-
 func TestClusterStateNew(t *testing.T) {
 	params := NewParameters()
 	params.Peers = []string{}
 
 	assert.Equal(t, "new", params.ClusterState())
+}
+
+func TestMakeClientUrls(t *testing.T) {
+	clients := makeClientUrls(4444, "1.2.3.4", "1.1.1.1")
+
+	assert.Equal(t, 2, len(clients))
+	assert.Equal(t, "http://1.2.3.4:4444,http://1.1.1.1:4444", strings.Join(clients, ","))
 }
