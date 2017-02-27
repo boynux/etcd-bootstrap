@@ -211,7 +211,7 @@ func TestGarbageCollector(t *testing.T) {
 	}()
 
 	e, _ := New("test-endpoint")
-	e.GarbageCollector(context.Background(), []string{"test-2"})
+	e.GarbageCollector(context.Background(), []string{"127.0.0.1"})
 
 	assert.Equal(t, 1, called)
 }

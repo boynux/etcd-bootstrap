@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/coreos/etcd/client"
@@ -27,7 +28,8 @@ func (e *Etcd) GarbageCollector(c context.Context, members []string) {
 			for _, c := range members {
 				log.Printf("Checking for member %s", c, i.Name)
 				// No name means member just added. So keep it for now!
-				if i.Name != "" || c == i.Name {
+				log.Println(c, i.PeerURLs)
+				if strings.Contains(strings.Join(i.PeerURLs, ","), c) {
 					found = true
 					break
 				}
