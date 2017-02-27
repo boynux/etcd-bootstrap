@@ -63,10 +63,7 @@ func (h *AWSServiceHelper) GetAutoScalingSelfInstances() ([]*EC2Instance, error)
 
 	ids := make([]*string, len(a.Instances))
 	for x, i := range a.Instances {
-		if *i.InstanceId != m.InstanceID {
-			log.Println(*i.InstanceId)
-			ids[x] = i.InstanceId
-		}
+		ids[x] = i.InstanceId
 	}
 
 	insts, err := h.NewEC2Service().GetRunningEC2Instance(ids...)

@@ -83,12 +83,10 @@ func generateParameters(conf *Configuration, instances []*aws.EC2Instance) *etcd
 	metadata, _ := aws.New(*conf.Region).NewEC2MetadataService().GetMetadata()
 
 	params := etcd.NewParameters()
-	params.Peers = make([]string, len(instances)+1)
+	params.Peers = make([]string, len(instances))
 	for x, i := range instances {
 		params.Peers[x] = fmt.Sprintf("%s=http://%s:%d", *i.InstanceId, *i.PrivateIpAddress, 2380)
 	}
-
-	params.Peers[len(instances)] = fmt.Sprintf("%s=http://%s:%d", metadata.InstanceID, metadata.PrivateIP, 2380)
 
 	asginfo, _ := aws.New(metadata.Region).NewAutoScallingService().GetAutoScallingGroupOfInstance([]*string{&metadata.InstanceID})
 	clusterToken := md5.Sum([]byte(*asginfo.AutoScalingGroupName))
