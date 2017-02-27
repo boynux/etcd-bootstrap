@@ -25,8 +25,9 @@ func (e *Etcd) GarbageCollector(c context.Context, members []string) {
 		for x, i := range m {
 			found := false
 			for _, c := range members {
-				log.Printf("Checking for member %s", c)
-				if c == "" || c == i.Name {
+				log.Printf("Checking for member %s", c, i.Name)
+				// No name means member just added. So keep it for now!
+				if i.Name != "" || c == i.Name {
 					found = true
 					break
 				}
