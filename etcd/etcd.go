@@ -63,6 +63,16 @@ func (e *Etcd) NewMembersAPI() MembersAPI {
 	return MembersAPI(client.NewMembersAPI(e.client))
 }
 
+func (e *Etcd) Available(c context.Context) bool {
+	_, err := e.ListMembers(c)
+
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
 func (e *Etcd) GetLeader(c context.Context) (*Member, error) {
 	m, err := e.NewMembersAPI().Leader(context.Background())
 

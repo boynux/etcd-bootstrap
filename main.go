@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -18,75 +19,30 @@ func main() {
 
 	log.Println(getVersion())
 
-	var firstActiveEtcd *etcd.Etcd
-
-	instances, err := aws.New(*conf.Region).GetAutoSelfScalingInstances()
+	instances, err := aws.New(*conf.Region).GetAutoScalingSelfInstances()
 	if err != nil {
 		panic("Could not get EC2 instances")
 	}
 
-	for _, i := range instances {
-		// Make sure instance has Private address
-		// In case instance still initializing it might be that there is
-		// not Private address associated.
-		// We can skip this since eventually instance will be available and
-		// is able to get new address
-		log.Printf("Checking ETCD instance at %s", *i.PrivateIpAddress)
-
-		e, err := etcd.New(fmt.Sprintf("http://%s:%d", *i.PrivateIpAddress, *conf.ClientPort))
-
-		if err == nil {
-			_, err := e.ListMembers(context.Background())
-			if err == nil {
-				firstActiveEtcd = e
-				log.Println("We managed to fetch members info, proceeding with exisitng cluster...")
-				// Seems we managed to get some member information
-				// We can get out of the loop her and try to check for the state of the cluster
-				break
-			}
-		}
-	}
-
+	firstActiveEtcd, err := findActiveEtcdInstance(instances, *conf.ClientPort)
 	if err != nil {
 		log.Printf("Error while getting ETCD members info ... %s\n", err)
 	}
 
-	// Try to cunstruct etcd2 parameters...
-	metadata, _ := aws.New(*conf.Region).NewEC2MetadataService().GetMetadata()
-	asginfo, _ := aws.New(metadata.Region).NewAutoScallingService().GetAutoScallingGroupOfInstance([]*string{&metadata.InstanceID})
-	clusterToken := md5.Sum([]byte(*asginfo.AutoScalingGroupName))
-
-	// Instances list are fetch before, we assume all instances suppose to run etcd nodes
-	peers := make([]string, len(instances))
 	activeInsts := make([]string, len(instances))
 
 	for x, i := range instances {
-		peers[x] = fmt.Sprintf("%s=http://%s:%d", *i.InstanceId, *i.PrivateIpAddress, 2380)
 		activeInsts[x] = *i.InstanceId
 	}
 
-	params := etcd.NewParameters()
-	params.Name = metadata.InstanceID
-	params.PrivateIP = metadata.PrivateIP
-	params.ClientPort = *conf.ClientPort
-	params.Token = clusterToken
-	params.Peers = peers
-	params.ExistingCluster = firstActiveEtcd != nil
-	params.Join = strings.Join
+	params := generateParameters(conf, instances)
 
-	if *conf.UsePublicIP {
-		ip, err := aws.New(*conf.Region).NewEC2MetadataService().GetPublicIP()
-		if err != nil {
-			log.Printf("Could not get public IP address, %s\n", err)
-		} else {
-			params.PublicIP = ip
-		}
-	}
-
-	log.Println("Adding this machine to the cluster")
-	if params.ExistingCluster {
+	if firstActiveEtcd != nil {
+		params.ExistingCluster = true
 		firstActiveEtcd.GarbageCollector(context.Background(), activeInsts)
+
 		if *conf.AddMember {
+			log.Println("Adding this machine to the cluster")
 			_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
 		}
 
@@ -100,4 +56,56 @@ func main() {
 	} else {
 		fmt.Println(strings.Join(etcd.GenerateParameteres(*conf.Output, params), " "))
 	}
+}
+
+func findActiveEtcdInstance(instances []*aws.EC2Instance, port int) (*etcd.Etcd, error) {
+	for _, i := range instances {
+		// Make sure instance has Private address
+		// In case instance still initializing it might be that there is
+		// not Private address associated.
+		// We can skip this since eventually instance will be available and
+		// is able to get new address
+		log.Printf("Checking ETCD instance at %s", *i.PrivateIpAddress)
+
+		e, err := etcd.New(fmt.Sprintf("http://%s:%d", *i.PrivateIpAddress, port))
+
+		if err == nil {
+			if e.Available(context.Background()) {
+				return e, nil
+			}
+		}
+	}
+
+	return nil, errors.New("Could not find any active ETCD instances.")
+}
+
+func generateParameters(conf *Configuration, instances []*aws.EC2Instance) *etcd.Parameters {
+	metadata, _ := aws.New(*conf.Region).NewEC2MetadataService().GetMetadata()
+
+	params := etcd.NewParameters()
+	params.Peers = make([]string, len(instances)+1)
+	for x, i := range instances {
+		params.Peers[x] = fmt.Sprintf("%s=http://%s:%d", *i.InstanceId, *i.PrivateIpAddress, 2380)
+	}
+
+	params.Peers[len(instances)] = fmt.Sprintf("%s=http://%s:%d", metadata.InstanceID, metadata.PrivateIP, 2380)
+
+	asginfo, _ := aws.New(metadata.Region).NewAutoScallingService().GetAutoScallingGroupOfInstance([]*string{&metadata.InstanceID})
+	clusterToken := md5.Sum([]byte(*asginfo.AutoScalingGroupName))
+
+	params.Name = metadata.InstanceID
+	params.PrivateIP = metadata.PrivateIP
+	params.ClientPort = *conf.ClientPort
+	params.Token = clusterToken
+
+	if *conf.UsePublicIP {
+		ip, err := aws.New(*conf.Region).NewEC2MetadataService().GetPublicIP()
+		if err != nil {
+			log.Printf("Could not get public IP address, %s\n", err)
+		} else {
+			params.PublicIP = ip
+		}
+	}
+
+	return params
 }
