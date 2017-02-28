@@ -23,6 +23,7 @@ type EC2MetadataHelper struct {
 	service ec2MetadataIface
 }
 
+/*GetPublicIP fetches instances public IP Address */
 func (es *EC2MetadataHelper) GetPublicIP() (string, error) {
 	if !es.service.Available() {
 		return "", errors.New("Metadata is not available")
@@ -31,6 +32,7 @@ func (es *EC2MetadataHelper) GetPublicIP() (string, error) {
 	return es.service.GetMetadata("public-ipv4")
 }
 
+/*GetMetadata fetches current instance's metadata document */
 func (es *EC2MetadataHelper) GetMetadata() (Metadata, error) {
 	if !es.service.Available() {
 		return Metadata{}, errors.New("Metadata is not available")

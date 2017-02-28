@@ -191,7 +191,7 @@ func TestGarbageCollector(t *testing.T) {
 		called++
 
 		return &http.Response{
-			StatusCode: 201,
+			StatusCode: 204,
 			Body:       ioutil.NopCloser(strings.NewReader("{}")),
 		}, nil
 	}

@@ -16,6 +16,7 @@ type EC2Helper struct {
 	service ec2Service
 }
 
+/*GetEC2Instance returns EC2 instances from IDs */
 func (es *EC2Helper) GetEC2Instance(instanceIds ...*string) ([]*EC2Instance, error) {
 
 	instances, err := es.service.DescribeInstances(&ec2.DescribeInstancesInput{
@@ -37,6 +38,7 @@ func (es *EC2Helper) GetEC2Instance(instanceIds ...*string) ([]*EC2Instance, err
 	return res, nil
 }
 
+/*GetRunningEC2Instance returns EC2 instances which are in "running" state */
 func (es *EC2Helper) GetRunningEC2Instance(instanceIds ...*string) ([]*EC2Instance, error) {
 
 	i, err := es.GetEC2Instance(instanceIds...)

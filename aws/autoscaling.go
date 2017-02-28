@@ -15,6 +15,7 @@ type AutoScalingGroupHelper struct {
 	service autoScalingGroupsService
 }
 
+/*GetAutoScallingGroupOfInstance returns ASG informattion that the current instnace belongs to */
 func (as *AutoScalingGroupHelper) GetAutoScallingGroupOfInstance(instanceIDs []*string) (*AutoScalingGroup, error) {
 	out, err := as.service.DescribeAutoScalingInstances(&autoscaling.DescribeAutoScalingInstancesInput{
 		InstanceIds: instanceIDs,
@@ -42,8 +43,4 @@ func (as *AutoScalingGroupHelper) GetAutoScallingGroupOfInstance(instanceIDs []*
 
 	res := AutoScalingGroup(*asgs.AutoScalingGroups[0])
 	return &res, nil
-}
-
-func (as *AutoScalingGroupHelper) GetAutoScalingInstances(name string) ([]*EC2Instance, error) {
-	return nil, errors.New("No instnace found!")
 }

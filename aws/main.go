@@ -50,6 +50,11 @@ func (h *AWSServiceHelper) NewEC2Service() *EC2Helper {
 	}
 }
 
+/*GetAutoScalingSelfInstances returns autoscaling instances that this instance belongs to
+ *
+ * This a helper method that finds the current instance's ASG and then fetches all 
+ * the instances that are active within the ASG including the current instnance
+ */
 func (h *AWSServiceHelper) GetAutoScalingSelfInstances() ([]*EC2Instance, error) {
 	m, err := h.NewEC2MetadataService().GetMetadata()
 	if err != nil {

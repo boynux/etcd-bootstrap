@@ -19,6 +19,10 @@ type Etcd struct {
 	client Client
 }
 
+/*GarbageCollector removes etcd members which are not in the members list
+ *
+ * Members list contains private addresses of the instances.
+ */
 func (e *Etcd) GarbageCollector(c context.Context, members []string) {
 	m, err := e.NewMembersAPI().List(c)
 
@@ -26,9 +30,6 @@ func (e *Etcd) GarbageCollector(c context.Context, members []string) {
 		for x, i := range m {
 			found := false
 			for _, c := range members {
-				log.Printf("Checking for member %s", c, i.Name)
-				// No name means member just added. So keep it for now!
-				log.Println(c, i.PeerURLs)
 				if strings.Contains(strings.Join(i.PeerURLs, ","), c) {
 					found = true
 					break
@@ -37,7 +38,10 @@ func (e *Etcd) GarbageCollector(c context.Context, members []string) {
 
 			if !found {
 				log.Printf("removing member number %d: %s", x, m[x])
-				e.NewMembersAPI().Remove(c, m[x].ID)
+				err := e.NewMembersAPI().Remove(c, m[x].ID)
+				if err != nil {
+					log.Printf("Could not remove dead member: %s", err)
+				}
 			}
 		}
 	}
@@ -66,6 +70,7 @@ func (e *Etcd) NewMembersAPI() MembersAPI {
 	return MembersAPI(client.NewMembersAPI(e.client))
 }
 
+/*Available checks wheather the etcd instance is responsive. */
 func (e *Etcd) Available(c context.Context) bool {
 	_, err := e.ListMembers(c)
 
@@ -76,6 +81,7 @@ func (e *Etcd) Available(c context.Context) bool {
 	return true
 }
 
+/*GetLeader fetches etcd cluster leader information */
 func (e *Etcd) GetLeader(c context.Context) (*Member, error) {
 	m, err := e.NewMembersAPI().Leader(context.Background())
 
@@ -87,6 +93,7 @@ func (e *Etcd) GetLeader(c context.Context) (*Member, error) {
 	return nil, err
 }
 
+/*ListMembers lists all etcd cluster members */
 func (e *Etcd) ListMembers(c context.Context) ([]*Member, error) {
 	m, err := e.NewMembersAPI().List(c)
 
@@ -103,6 +110,7 @@ func (e *Etcd) ListMembers(c context.Context) ([]*Member, error) {
 	return nil, err
 }
 
+/*AddMember adds new member to the cluster */
 func (e *Etcd) AddMember(c context.Context, peerUrl string) (*Member, error) {
 	m, err := e.NewMembersAPI().Add(c, peerUrl)
 	if err == nil {
