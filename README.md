@@ -10,6 +10,14 @@ This is a single Go binary that bootstraps ETCD cluster in AWS Autoscaling Group
 # Why we made this:
 Maintaining and managing ETCD cluster has a significant operational cost. We wanted to make it as simple as possible. So we decided to write this app to make it easier to bootstrap an ETCD cluster within AWS Autoscaling groups.
 
+We also wanted to be able to point our etcd clients to one single endpoint. Which is not possible.
+
+# What it does:
+When starting up, an ec2 instance in an autoscaling group calls etcd-bootstrap.
+etcd-bootstrap checks -
+- if other ec2 instances of the austoscalling group are already forming a cluster. It creates an etcd  config to join the cluster.
+- if the cluster formed by other instances in the autoscalling group mention members does do not exist anymore (their ec2 instances was removed maybe). It then removes those members from the cluster.
+
 # How to use it:
 The binary if runs inside an EC2 instance that belongs to autoscaling group will output either ENV variables or command line arguments for Etcd2 application. So in the simplest way it can be used like this:
 
