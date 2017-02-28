@@ -46,4 +46,4 @@ This is a work in progress and not ready for production.
 # Contribution:
 Pull requests and issues are welcome.
 
-### Brought to you proudly by Cloud Team @Stylgight
+### Brought to you proudly by Cloud Team @Stylight
