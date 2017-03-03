@@ -21,12 +21,12 @@ type fakeEC2Service struct {
 	instances []*ec2.Instance
 }
 
-func (self *fakeEC2Service) DescribeInstances(
+func (e *fakeEC2Service) DescribeInstances(
 	input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
 
 	var instances []*ec2.Instance
 
-	for _, i := range self.instances {
+	for _, i := range e.instances {
 		for _, l := range input.InstanceIds {
 			if *l == *i.InstanceId {
 				instances = append(instances, i)
@@ -40,7 +40,7 @@ func (self *fakeEC2Service) DescribeInstances(
 
 	return &ec2.DescribeInstancesOutput{
 		Reservations: []*ec2.Reservation{
-			&ec2.Reservation{Instances: instances},
+			{Instances: instances},
 		},
 	}, nil
 }
@@ -59,7 +59,7 @@ func TestDescribeInstancesSucceeds(t *testing.T) {
 	service := &EC2Helper{
 		service: &fakeEC2Service{
 			instances: []*ec2.Instance{
-				&ec2.Instance{
+				{
 					InstanceId: aws.String("existing-instance"),
 				},
 			},

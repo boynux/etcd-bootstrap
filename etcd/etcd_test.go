@@ -59,13 +59,13 @@ func (t *fakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func getFakeMembers() []*Member {
 	return []*Member{
-		&Member{
+		{
 			ID:         "5b4af01f12132171",
 			Name:       "test-1",
 			PeerURLs:   []string{"http://127.0.0.1:2380"},
 			ClientURLs: []string{"http://127.0.0.1:2379"},
 		},
-		&Member{
+		{
 			ID:         "c5abd02102276712",
 			Name:       "test-2",
 			PeerURLs:   []string{"http://127.0.0.2:2380"},

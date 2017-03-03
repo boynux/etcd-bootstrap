@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
+//AWSService interface for ServiceHelper
 type AWSService interface {
 	GetAutoScalingSelfInstances() ([]*EC2Instance, error)
 
@@ -18,22 +19,26 @@ type AWSService interface {
 	NewEC2Service() *EC2Helper
 }
 
+//AWSServiceHelper provides access to various AWS resources
 type AWSServiceHelper struct {
 	Session *session.Session
 }
 
+//New initializes new AWSServiceHelper object
 func New(region string) AWSService {
 	return &AWSServiceHelper{
 		Session: session.New(&aws.Config{Region: aws.String(region)}),
 	}
 }
 
+//NewEC2MetadataService initializes new EC2Metadata helper
 func (h *AWSServiceHelper) NewEC2MetadataService() *EC2MetadataHelper {
 	return &EC2MetadataHelper{
 		service: ec2metadata.New(h.Session),
 	}
 }
 
+//NewAutoScallingService initializes new Autoscaling Helper
 func (h *AWSServiceHelper) NewAutoScallingService() *AutoScalingGroupHelper {
 	svc := autoscaling.New(h.Session)
 
@@ -42,6 +47,7 @@ func (h *AWSServiceHelper) NewAutoScallingService() *AutoScalingGroupHelper {
 	}
 }
 
+//NewEC2Service initializes new EC2 Helper
 func (h *AWSServiceHelper) NewEC2Service() *EC2Helper {
 	svc := ec2.New(h.Session)
 
@@ -52,7 +58,7 @@ func (h *AWSServiceHelper) NewEC2Service() *EC2Helper {
 
 /*GetAutoScalingSelfInstances returns autoscaling instances that this instance belongs to
  *
- * This a helper method that finds the current instance's ASG and then fetches all 
+ * This is a helper method that finds the current instance's ASG and then fetches all
  * the instances that are active within the ASG including the current instnance
  */
 func (h *AWSServiceHelper) GetAutoScalingSelfInstances() ([]*EC2Instance, error) {

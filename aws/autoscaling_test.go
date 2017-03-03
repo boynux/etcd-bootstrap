@@ -79,12 +79,12 @@ func TestDescribeAutoScalingSucceeds(t *testing.T) {
 	as := &AutoScalingGroupHelper{
 		service: &fakeAutoScalingGroupsService{
 			asgInstances: []*autoscaling.InstanceDetails{
-				&autoscaling.InstanceDetails{
+				{
 					AutoScalingGroupName: aws.String("asg"),
 				},
 			},
 			asgGroups: []*autoscaling.Group{
-				&autoscaling.Group{
+				{
 					AutoScalingGroupName: aws.String("test-asg"),
 				},
 			},
@@ -102,7 +102,7 @@ func TestGetAutoScalingInstancesReuturns(t *testing.T) {
 	_ = &AutoScalingGroupHelper{
 		service: &fakeAutoScalingGroupsService{
 			asgInstances: []*autoscaling.InstanceDetails{
-				&autoscaling.InstanceDetails{
+				{
 					AutoScalingGroupName: aws.String("asg"),
 				},
 			},

@@ -16,7 +16,7 @@ type fakeAWSService struct {
 func newAWSService(asgGroups []*autoscaling.Group, asgInstances []*autoscaling.InstanceDetails, instances []*ec2.Instance) {
 	_ = &ec2.DescribeInstancesOutput{
 		Reservations: []*ec2.Reservation{
-			&ec2.Reservation{Instances: instances},
+			{Instances: instances},
 		},
 	}
 }

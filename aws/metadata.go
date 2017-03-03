@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 )
 
+//Metadata document for EC2 instances
 type Metadata ec2metadata.EC2InstanceIdentityDocument
 
 /*
@@ -19,6 +20,7 @@ type ec2MetadataIface interface {
 	Available() bool
 }
 
+//EC2MetadataHelper abstraction for AWS Ec2 Metadata functions
 type EC2MetadataHelper struct {
 	service ec2MetadataIface
 }
