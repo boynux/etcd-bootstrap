@@ -44,6 +44,13 @@ func main() {
 		if *conf.AddMember {
 			log.Println("Adding this machine to the cluster")
 			_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
+
+			if err != nil {
+				// Adding member failed, it might be that the cluster in inconsistent state.
+				// Try enforce a new cluster
+
+				params.ExistingCluster = false
+			}
 		}
 
 		if err != nil {
