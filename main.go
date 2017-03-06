@@ -45,7 +45,7 @@ func main() {
 			log.Println("Adding this machine to the cluster")
 			_, err = firstActiveEtcd.AddMember(context.Background(), fmt.Sprintf("http://%s:%d", params.PrivateIP, 2380))
 
-			if err != nil {
+			if err != nil && strings.Contains(err.Error(), "etcd cluster is unavailable or misconfigured") {
 				// Adding member failed, it might be that the cluster in inconsistent state.
 				// Try enforce a new cluster
 
